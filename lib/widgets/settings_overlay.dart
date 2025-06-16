@@ -18,7 +18,6 @@ class SettingsOverlay extends StatefulWidget {
 
 class SettingsOverlayState extends State<SettingsOverlay> {
   late Locale _selectedLocale;
-  String selectedTheme = 'Dunkel';
 
   final Map<String, Locale> languageMap = {
     'Deutsch': const Locale('de'),
@@ -31,27 +30,11 @@ class SettingsOverlayState extends State<SettingsOverlay> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _selectedLocale = context.locale;
-    _loadTheme();
   }
 
   Future<void> _saveLocale(Locale locale) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('selectedLocale', locale.languageCode);
-  }
-
-  Future<void> _saveTheme(String theme) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('selectedTheme', theme);
-  }
-
-  Future<void> _loadTheme() async {
-    final prefs = await SharedPreferences.getInstance();
-    String? theme = prefs.getString('selectedTheme');
-    if (theme != null && mounted) {
-      setState(() {
-        selectedTheme = theme;
-      });
-    }
   }
 
   void _showContactDialog(BuildContext context) {
@@ -196,62 +179,7 @@ class SettingsOverlayState extends State<SettingsOverlay> {
 
                 const SizedBox(height: 20),
 
-                // Design (Theme)
-                Text(
-                  "design".tr(),
-                  style: const TextStyle(
-                    fontSize: 20.0,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFB2BEB5),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFB2BEB5),
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      dropdownColor: const Color(0xFFB2BEB5),
-                      value: selectedTheme,
-                      isExpanded: true,
-                      icon: const Icon(Icons.arrow_drop_down,
-                          color: Color(0xFF282828)),
-                      items: ['Hell', 'Dunkel'].map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(
-                            value,
-                            style: const TextStyle(
-                              color: Color(0xFF282828),
-                              fontSize: 17.0,
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (String? value) async {
-                        if (value != null) {
-                          setState(() {
-                            selectedTheme = value;
-                          });
-                          if (widget.onThemeChanged != null) {
-                            widget.onThemeChanged!(value);
-                          }
-                          await _saveTheme(value);
-                        }
-                      },
-                      style: const TextStyle(
-                        color: Color(0xFF282828),
-                        fontSize: 17.0,
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
+                // Kontakt / Rechtliches
                 Text(
                   "legal".tr(),
                   style: const TextStyle(
