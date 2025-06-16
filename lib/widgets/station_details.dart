@@ -258,7 +258,7 @@ class StationDetailsWidget extends StatelessWidget {
                                       if (evse.hasParkingSensor &&
                                           evse.parkingSensor != null)
                                         Text(
-                                          'parking_sensor'.tr(),
+                                          'parking_sensor_build'.tr(),
                                           style: const TextStyle(
                                             fontSize: 18.0,
                                             color: Colors.lightBlue,

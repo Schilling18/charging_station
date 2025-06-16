@@ -92,6 +92,7 @@ class _FilterOverlayState extends State<FilterOverlay> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        // Ladegeschwindigkeit (nur eine Auswahl)
                         Text(
                           'speed'.tr(),
                           style: const TextStyle(
@@ -101,32 +102,30 @@ class _FilterOverlayState extends State<FilterOverlay> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        // ChoiceChips für Ladegeschwindigkeit
                         Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: speedOptions.map((optionKey) {
-                            final isSelected = selectedSpeed == optionKey;
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 8.0),
-                              child: ChoiceChip(
-                                label: Text(tr(optionKey)),
-                                selected: isSelected,
-                                selectedColor: Colors.green,
-                                backgroundColor: const Color(0xFFB2BEB5),
-                                labelStyle: TextStyle(
-                                  color:
-                                      isSelected ? Colors.white : Colors.black,
-                                ),
-                                onSelected: (_) {
-                                  setState(() {
-                                    selectedSpeed = optionKey;
-                                  });
-                                },
+                            return CheckboxListTile(
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              controlAffinity: ListTileControlAffinity.trailing,
+                              activeColor: Colors.green,
+                              value: selectedSpeed == optionKey,
+                              onChanged: (_) {
+                                setState(() {
+                                  selectedSpeed = optionKey;
+                                });
+                              },
+                              title: Text(
+                                tr(optionKey),
+                                style: const TextStyle(
+                                    color: Color(0xFFB2BEB5), fontSize: 18),
                               ),
                             );
                           }).toList(),
                         ),
                         const SizedBox(height: 20),
+
+                        // Steckertypen (mehrere möglich)
                         Text(
                           'plug'.tr(),
                           style: const TextStyle(
@@ -136,57 +135,57 @@ class _FilterOverlayState extends State<FilterOverlay> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        // FilterChips für Steckertypen
                         Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: plugOptions.map((plug) {
-                            final isSelected = selectedPlugs.contains(plug);
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 8.0),
-                              child: FilterChip(
-                                label: Text(plug),
-                                selected: isSelected,
-                                selectedColor: Colors.green,
-                                backgroundColor: const Color(0xFFB2BEB5),
-                                labelStyle: TextStyle(
-                                  color:
-                                      isSelected ? Colors.white : Colors.black,
-                                ),
-                                onSelected: (selected) {
-                                  setState(() {
-                                    if (selected) {
-                                      selectedPlugs.add(plug);
-                                    } else {
-                                      selectedPlugs.remove(plug);
-                                    }
-                                  });
-                                },
+                            return CheckboxListTile(
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              controlAffinity: ListTileControlAffinity.trailing,
+                              activeColor: Colors.green,
+                              value: selectedPlugs.contains(plug),
+                              onChanged: (bool? value) {
+                                setState(() {
+                                  if (value == true) {
+                                    selectedPlugs.add(plug);
+                                  } else {
+                                    selectedPlugs.remove(plug);
+                                  }
+                                });
+                              },
+                              title: Text(
+                                plug,
+                                style: const TextStyle(
+                                    color: Color(0xFFB2BEB5), fontSize: 18),
                               ),
                             );
                           }).toList(),
                         ),
                         const SizedBox(height: 20),
-                        // Parksensor Filter
-                        Row(
-                          children: [
-                            Switch(
-                              value: hasParkingSensor,
-                              activeColor: Colors.green,
-                              onChanged: (value) {
-                                setState(() {
-                                  hasParkingSensor = value;
-                                });
-                              },
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              "filter_parking_sensor".tr(),
-                              style: const TextStyle(
-                                fontSize: 18,
-                                color: Color(0xFFB2BEB5),
-                              ),
-                            ),
-                          ],
+                        Text(
+                          'parking_sensor'.tr(),
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFB2BEB5),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        CheckboxListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          controlAffinity: ListTileControlAffinity.trailing,
+                          activeColor: Colors.green,
+                          value: hasParkingSensor,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              hasParkingSensor = value ?? false;
+                            });
+                          },
+                          title: Text(
+                            'filter_parking_sensor'.tr(),
+                            style: const TextStyle(
+                                color: Color(0xFFB2BEB5), fontSize: 18),
+                          ),
                         ),
                         const SizedBox(height: 20),
                       ],
@@ -205,7 +204,7 @@ class _FilterOverlayState extends State<FilterOverlay> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 18),
                 ),
                 child: Text(
                   'apply_filter'.tr(),
