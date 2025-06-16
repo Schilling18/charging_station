@@ -276,11 +276,36 @@ class StationDetailsWidget extends StatelessWidget {
                                         Padding(
                                           padding: const EdgeInsets.only(
                                               right: 10.0),
-                                          child: Icon(
-                                            getPlugIcon(evse.chargingPlug),
-                                            size: 50.0,
-                                            color: const Color(0xFFB2BEB5),
-                                          ),
+                                          child: (() {
+                                            switch (evse.chargingPlug) {
+                                              case 'IEC_62196_T2':
+                                                return Image.asset(
+                                                  'assets/images/typ2.png',
+                                                  width: 50,
+                                                  height: 50,
+                                                );
+                                              case 'IEC_62196_T2_COMBO':
+                                                return Image.asset(
+                                                  'assets/images/ccs.png',
+                                                  width: 50,
+                                                  height: 50,
+                                                );
+                                              case 'CHADEMO':
+                                                return Image.asset(
+                                                  'assets/images/chademo.png',
+                                                  width: 50,
+                                                  height: 50,
+                                                );
+                                              default:
+                                                return Icon(
+                                                  getPlugIcon(
+                                                      evse.chargingPlug),
+                                                  size: 50.0,
+                                                  color:
+                                                      const Color(0xFFB2BEB5),
+                                                );
+                                            }
+                                          })(),
                                         ),
                                         Text(
                                           formatPlugType(evse.chargingPlug),
