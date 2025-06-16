@@ -53,6 +53,7 @@ class MapScreenState extends State<MapScreen> {
 
   // --- Controller für Suchfeld ---
   late final TextEditingController searchController;
+  final MapController _mapController = MapController();
 
   final LatLng defaultCoordinates = const LatLng(52.3906, 13.0645); // Potsdam
 
@@ -127,6 +128,7 @@ class MapScreenState extends State<MapScreen> {
       selectedFromList = true;
       showFavoritesOverlay = false;
     });
+    _mapController.move(station.coordinates, 19.0);
   }
 
   void updateMarkersFromFilteredStations() {
@@ -194,6 +196,7 @@ class MapScreenState extends State<MapScreen> {
           : Stack(
               children: [
                 FlutterMap(
+                  mapController: _mapController,
                   options: MapOptions(
                     initialCenter: selectedCoordinates ?? defaultCoordinates,
                     initialZoom: 13.0,
