@@ -1,11 +1,11 @@
 // Created 14.03.2024 by Christopher Schilling
 //
-// This file builds the MapScreen Widget.
+// This file defines the MapScreen widget that displays a map with charging stations,
+// handles search functionality, displays charging station details, and manages overlays.
 //
-// __version__ = "1.0.0"
+// __version__ = "2.0.0"
 //
 // __author__ = "Christopher Schilling"
-//
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -21,6 +21,8 @@ import 'package:charging_station/models/api.dart';
 import 'package:charging_station/utils/helper.dart';
 import 'package:easy_localization/easy_localization.dart';
 
+/// A widget representing the map screen where users can interact with the map,
+/// view charging stations, search for stations, and apply filters.
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
@@ -42,20 +44,21 @@ class MapScreenState extends State<MapScreen> {
   LatLng? selectedCoordinates;
   ChargingStationInfo? selectedStation;
 
-  // --- Daten/Favoriten/Filter ---
-  List<ChargingStationInfo> chargingStations = [];
-  List<ChargingStationInfo> filteredStations = [];
-  Set<String> favoriteIds = {};
-  Set<String> selectedPlugs = {};
+  // --- Data/Favorites/Filter ---
+  List<ChargingStationInfo> chargingStations = <ChargingStationInfo>[];
+  List<ChargingStationInfo> filteredStations = <ChargingStationInfo>[];
+  Set<String> favoriteIds = <String>{};
+  Set<String> selectedPlugs = <String>{};
   String selectedSpeed = 'all';
 
-  List<Marker> _markers = [];
+  List<Marker> _markers = <Marker>[];
 
-  // --- Controller für Suchfeld ---
+  // --- Controller for Search Field ---
   late final TextEditingController searchController;
   final MapController _mapController = MapController();
 
-  final LatLng defaultCoordinates = const LatLng(52.3906, 13.0645); // Potsdam
+  final LatLng defaultCoordinates =
+      const LatLng(52.3906, 13.0645); // Default map coordinates (Potsdam)
 
   @override
   void initState() {
@@ -73,9 +76,10 @@ class MapScreenState extends State<MapScreen> {
     super.dispose();
   }
 
+  /// Loads the user's current position using Geolocator.
   Future<void> _loadCurrentPosition() async {
     try {
-      final position = await Geolocator.getCurrentPosition(
+      final Position position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
         ),
@@ -85,22 +89,25 @@ class MapScreenState extends State<MapScreen> {
         selectedCoordinates = LatLng(position.latitude, position.longitude);
       });
     } catch (e) {
-      // Fehlerbehandlung (optional: Snackbar, Log)
+      //WIP
     }
   }
 
+  /// Loads charging stations, favorites, and applies filters.
   Future<void> _loadChargingStationsAndFavorites() async {
     try {
-      final stations = await ApiService().fetchChargingStations();
-      final favs = await loadFavorites();
+      final List<ChargingStationInfo> stations =
+          await ApiService().fetchChargingStations();
+      final Set<String> favs = await loadFavorites();
       setState(() {
         chargingStations = stations;
         favoriteIds = favs;
       });
 
-      // Lade gespeicherte Filter und filtere!
-      final filterSettings = await loadInitialFilterSettings();
-      final filtered = filterStations(
+      // Load filter settings and apply them to filter the stations
+      final Map<String, dynamic> filterSettings =
+          await loadInitialFilterSettings();
+      final List<ChargingStationInfo> filtered = filterStations(
         allStations: chargingStations,
         selectedSpeed: filterSettings['selectedSpeed'] as String,
         selectedPlugs: filterSettings['selectedPlugs'] as Set<String>,
@@ -115,12 +122,13 @@ class MapScreenState extends State<MapScreen> {
       updateMarkersFromFilteredStations();
     } catch (e) {
       setState(() {
-        chargingStations = [];
-        favoriteIds = {};
+        chargingStations = <ChargingStationInfo>[];
+        favoriteIds = <String>{};
       });
     }
   }
 
+  /// Handles the station selection and updates the selected station details.
   void _onStationSelected(ChargingStationInfo station) {
     setState(() {
       selectedCoordinates = station.coordinates;
@@ -131,9 +139,10 @@ class MapScreenState extends State<MapScreen> {
     _mapController.move(station.coordinates, 19.0);
   }
 
+  /// Updates the markers on the map based on the filtered stations.
   void updateMarkersFromFilteredStations() {
-    final newMarkers = filteredStations
-        .map((station) {
+    final List<Marker> newMarkers = filteredStations
+        .map((ChargingStationInfo station) {
           if (station.coordinates.latitude.isNaN ||
               station.coordinates.longitude.isNaN) {
             return null;
@@ -159,8 +168,8 @@ class MapScreenState extends State<MapScreen> {
                   selectedPlugs,
                   hasParkingSensor: filteredHasParkingSensor,
                 )
-                    ? Colors.green
-                    : Colors.grey,
+                    ? Colors.green // Green for available stations
+                    : Colors.grey, // Grey for unavailable stations
               ),
             ),
           );
@@ -186,26 +195,27 @@ class MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final favoriteStations = chargingStations
-        .where((station) => isFavorite(favoriteIds, station.id.toString()))
+    final List<ChargingStationInfo> favoriteStations = chargingStations
+        .where((ChargingStationInfo station) =>
+            isFavorite(favoriteIds, station.id.toString()))
         .toList();
 
     return Scaffold(
       body: isOverlayVisible
           ? _buildSearchOverlay()
           : Stack(
-              children: [
+              children: <Widget>[
                 FlutterMap(
                   mapController: _mapController,
                   options: MapOptions(
                     initialCenter: selectedCoordinates ?? defaultCoordinates,
                     initialZoom: 13.0,
                   ),
-                  children: [
+                  children: <Widget>[
                     TileLayer(
                       urlTemplate:
-                          "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                      subdomains: const ['a', 'b', 'c'],
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      subdomains: const <String>['a', 'b', 'c'],
                     ),
                     MarkerLayer(
                       markers: _markers,
@@ -230,7 +240,7 @@ class MapScreenState extends State<MapScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12.0),
-                        boxShadow: const [
+                        boxShadow: const <BoxShadow>[
                           BoxShadow(
                             color: Colors.black12,
                             blurRadius: 5.0,
@@ -239,7 +249,7 @@ class MapScreenState extends State<MapScreen> {
                         ],
                       ),
                       child: Row(
-                        children: [
+                        children: <Widget>[
                           const Icon(Icons.search, color: Colors.grey),
                           const SizedBox(width: 8),
                           Text(
@@ -261,8 +271,9 @@ class MapScreenState extends State<MapScreen> {
                         showFilterOverlay = false;
                       });
                     },
-                    onApply: (newSpeed, newPlugs, hasParkingSensor) async {
-                      final filtered = filterStations(
+                    onApply: (String newSpeed, Set<String> newPlugs,
+                        bool hasParkingSensor) async {
+                      final List<ChargingStationInfo> filtered = filterStations(
                         allStations: chargingStations,
                         selectedSpeed: newSpeed,
                         selectedPlugs: newPlugs,
@@ -292,7 +303,7 @@ class MapScreenState extends State<MapScreen> {
                     left: 0,
                     right: 0,
                     child: GestureDetector(
-                      onVerticalDragUpdate: (details) {
+                      onVerticalDragUpdate: (DragUpdateDetails details) {
                         if (details.primaryDelta! < 0) {
                           setState(() {
                             selectedStation = null;
@@ -303,7 +314,7 @@ class MapScreenState extends State<MapScreen> {
                       child: Dismissible(
                         key: Key(selectedStation!.id.toString()),
                         direction: DismissDirection.down,
-                        onDismissed: (direction) {
+                        onDismissed: (DismissDirection direction) {
                           setState(() {
                             selectedStation = null;
                             selectedFromList = false;
@@ -314,8 +325,8 @@ class MapScreenState extends State<MapScreen> {
                           currentPosition: currentPosition,
                           isFavorite: isFavorite(
                               favoriteIds, selectedStation!.id.toString()),
-                          toggleFavorite: (stationId) async {
-                            final updated =
+                          toggleFavorite: (String stationId) async {
+                            final Set<String> updated =
                                 await toggleFavorite(favoriteIds, stationId);
                             setState(() {
                               favoriteIds = updated;
@@ -343,6 +354,7 @@ class MapScreenState extends State<MapScreen> {
     );
   }
 
+  /// Builds the favorites overlay widget to display favorite charging stations.
   Widget _buildFavoritesOverlay(List<ChargingStationInfo> favoriteStations) =>
       FavoritesOverlay(
         favoriteStations: favoriteStations,
@@ -354,14 +366,16 @@ class MapScreenState extends State<MapScreen> {
           });
         },
         chargingStations: chargingStations,
-        onDeleteFavorite: (stationId) async {
-          final updated = await deleteFavorite(favoriteIds, stationId);
+        onDeleteFavorite: (String stationId) async {
+          final Set<String> updated =
+              await deleteFavorite(favoriteIds, stationId);
           setState(() {
             favoriteIds = updated;
           });
         },
       );
 
+  /// Builds the bottom bar widget containing buttons for favorites, settings, and filters.
   Widget _buildBottomBar() => BottomBar(
         onFavoritesTap: () {
           setState(() {
@@ -379,6 +393,8 @@ class MapScreenState extends State<MapScreen> {
           });
         },
       );
+
+  /// Builds the search overlay widget for filtering and selecting charging stations.
   Widget _buildSearchOverlay() => SearchOverlay(
         filteredStations: filteredStations,
         searchController: searchController,
@@ -388,7 +404,7 @@ class MapScreenState extends State<MapScreen> {
             isOverlayVisible = false;
           });
         },
-        onStationSelected: (station) {
+        onStationSelected: (ChargingStationInfo station) {
           _onStationSelected(station);
           setState(() {
             isOverlayVisible = false;
@@ -400,7 +416,6 @@ class MapScreenState extends State<MapScreen> {
             showFilterOverlay = true;
           });
         },
-        // Die drei Filter-Werte übergeben!
         selectedSpeed: selectedSpeed,
         selectedPlugs: selectedPlugs,
         hasParkingSensor: filteredHasParkingSensor,
