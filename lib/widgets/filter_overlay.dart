@@ -219,7 +219,6 @@ class _FilterOverlayState extends State<FilterOverlay> {
               // Apply Filter button
               ElevatedButton(
                 onPressed: () async {
-                  // Save the selected filters
                   await saveSelectedSpeed(selectedSpeed);
                   await saveSelectedPlugs(selectedPlugs);
                   await saveSelectedParkingSensor(hasParkingSensor);
