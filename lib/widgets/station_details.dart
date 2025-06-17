@@ -1,8 +1,9 @@
 // Created 14.03.2024 by Christopher Schilling
 //
-// This file builds the station details Widget.
+// This file builds a widget to display detailed information about a charging station,
+// including the address, available chargers, EVSE details, and the option to toggle favorites.
 //
-// __version__ = "1.0.2"
+// __version__ = "2.0.0"
 //
 // __author__ = "Christopher Schilling"
 
@@ -10,9 +11,20 @@ import 'package:flutter/material.dart';
 import 'package:charging_station/models/api.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../utils/helper.dart';
+import 'package:charging_station/utils/helper.dart';
 import 'package:easy_localization/easy_localization.dart';
 
+/// A widget to display the details of a selected charging station.
+///
+/// This widget provides information about the station's address, available chargers,
+/// EVSE details, and provides the option to add the station to favorites. It also
+/// allows users to get directions to the station using Google Maps.
+///
+/// [selectedStation] - The charging station whose details are displayed.
+/// [isFavorite] - A flag indicating whether the station is a favorite or not.
+/// [toggleFavorite] - A function that toggles the station's favorite status.
+/// [onDismiss] - A callback function to dismiss the widget when swiped down.
+/// [currentPosition] - The current location of the user (if available) to calculate distance.
 class StationDetailsWidget extends StatelessWidget {
   final ChargingStationInfo selectedStation;
   final bool isFavorite;
@@ -32,13 +44,13 @@ class StationDetailsWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onVerticalDragUpdate: (details) {
+      onVerticalDragUpdate: (DragUpdateDetails details) {
         if (details.delta.dy > 0) {
           onDismiss();
         }
       },
       child: Dismissible(
-        key: const ValueKey("dismissible"),
+        key: const ValueKey('dismissible'),
         direction: DismissDirection.down,
         onDismissed: (_) => onDismiss(),
         child: Container(
@@ -58,10 +70,10 @@ class StationDetailsWidget extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              children: <Widget>[
                 Center(
                   child: Column(
-                    children: [
+                    children: <Widget>[
                       Text(
                         selectedStation.address,
                         style: const TextStyle(
@@ -74,7 +86,7 @@ class StationDetailsWidget extends StatelessWidget {
                       const SizedBox(height: 10.0),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
+                        children: <Widget>[
                           ElevatedButton(
                             onPressed: () {
                               launchUrl(Uri.parse(
@@ -100,10 +112,10 @@ class StationDetailsWidget extends StatelessWidget {
                           ),
                           const SizedBox(width: 10.0),
                           Builder(
-                            builder: (context) {
-                              final availableCount = selectedStation
+                            builder: (BuildContext context) {
+                              final int availableCount = selectedStation
                                   .evses.values
-                                  .where((evse) =>
+                                  .where((EvseInfo evse) =>
                                       evse.status == 'AVAILABLE' &&
                                       (!evse.hasParkingSensor ||
                                           evse.parkingSensor == null ||
@@ -183,19 +195,20 @@ class StationDetailsWidget extends StatelessWidget {
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
-                      children: [
-                        for (var evse
+                      children: <Widget>[
+                        for (EvseInfo evse
                             in selectedStation.evses.values.toList()
-                              ..sort((a, b) => a.status.compareTo(b.status)))
+                              ..sort((EvseInfo a, EvseInfo b) =>
+                                  a.status.compareTo(b.status)))
                           Column(
-                            children: [
+                            children: <Widget>[
                               const Divider(
                                 color: Color(0xFFB2BEB5),
                                 thickness: 1.0,
                               ),
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
+                                children: <Widget>[
                                   Icon(
                                     Icons.circle,
                                     color: (evse.status == 'AVAILABLE' &&
@@ -217,7 +230,7 @@ class StationDetailsWidget extends StatelessWidget {
                                   Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
-                                    children: [
+                                    children: <Widget>[
                                       Text(
                                         (evse.status == 'AVAILABLE' &&
                                                 (!evse.hasParkingSensor ||
@@ -272,7 +285,7 @@ class StationDetailsWidget extends StatelessWidget {
                                     padding: const EdgeInsets.only(right: 20.0),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
-                                      children: [
+                                      children: <Widget>[
                                         Padding(
                                           padding: const EdgeInsets.only(
                                               right: 10.0),
