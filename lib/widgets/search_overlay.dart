@@ -1,9 +1,34 @@
+// Created 14.03.2024 by Christopher Schilling
+//
+// This file builds the SearchOverlay widget that allows users to search through
+// filtered charging stations, apply filters, and view the results sorted by proximity
+// or availability.
+//
+// __version__ = "2.0.0"
+//
+// __author__ = "Christopher Schilling"
+
 import 'package:flutter/material.dart';
 import 'package:charging_station/models/api.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:charging_station/utils/helper.dart';
 import 'package:easy_localization/easy_localization.dart';
 
+/// A StatefulWidget that creates an overlay for searching charging stations.
+///
+/// This widget allows users to search and filter through charging stations
+/// based on their address, availability, and other filter options such as
+/// charging speed, plug type, and parking sensor availability.
+///
+/// [filteredStations] - The list of filtered charging stations to search through.
+/// [searchController] - The controller for the search text field.
+/// [currentPosition] - The current GPS position of the user for proximity-based sorting.
+/// [onClose] - The callback that is called when the overlay is closed.
+/// [onStationSelected] - The callback that is triggered when a station is selected.
+/// [onFilterTap] - An optional callback that triggers when the filter button is pressed.
+/// [selectedSpeed] - The selected charging speed filter.
+/// [selectedPlugs] - The selected plug types filter.
+/// [hasParkingSensor] - Whether or not the parking sensor filter is applied.
 class SearchOverlay extends StatefulWidget {
   final List<ChargingStationInfo> filteredStations;
   final TextEditingController searchController;
@@ -12,7 +37,7 @@ class SearchOverlay extends StatefulWidget {
   final void Function(ChargingStationInfo station) onStationSelected;
   final VoidCallback? onFilterTap;
 
-  // Neu: Filterparameter übergeben!
+  // Filter parameters passed to the widget
   final String selectedSpeed;
   final Set<String> selectedPlugs;
   final bool hasParkingSensor;
@@ -34,6 +59,10 @@ class SearchOverlay extends StatefulWidget {
   SearchOverlayState createState() => SearchOverlayState();
 }
 
+/// State for the SearchOverlay widget.
+///
+/// This class manages the state of the SearchOverlay widget, including sorting
+/// and filtering the stations based on the search query and selected filters.
 class SearchOverlayState extends State<SearchOverlay> {
   @override
   void initState() {
@@ -45,28 +74,33 @@ class SearchOverlayState extends State<SearchOverlay> {
 
   @override
   Widget build(BuildContext context) {
+    // Filter and sort the stations based on the search input and proximity
     List<ChargingStationInfo> displayStations = widget.filteredStations
-        .where((station) => station.address
+        .where((ChargingStationInfo station) => station.address
             .toLowerCase()
             .contains(widget.searchController.text.toLowerCase()))
         .toList();
 
     if (widget.currentPosition != null) {
-      displayStations.sort((a, b) {
-        final aAvailable = _countAvailableEvse(a);
-        final bAvailable = _countAvailableEvse(b);
+      // Sorting stations by distance and availability
+      displayStations.sort((ChargingStationInfo a, ChargingStationInfo b) {
+        final int aAvailable = _countAvailableEvse(a);
+        final int bAvailable = _countAvailableEvse(b);
 
         if (aAvailable == 0 && bAvailable > 0) return 1;
         if (aAvailable > 0 && bAvailable == 0) return -1;
 
-        final aDist = calculateDistance(widget.currentPosition!, a.coordinates);
-        final bDist = calculateDistance(widget.currentPosition!, b.coordinates);
+        final double aDist =
+            calculateDistance(widget.currentPosition!, a.coordinates);
+        final double bDist =
+            calculateDistance(widget.currentPosition!, b.coordinates);
         return aDist.compareTo(bDist);
       });
     } else {
-      displayStations.sort((a, b) {
-        final aAvailable = _countAvailableEvse(a);
-        final bAvailable = _countAvailableEvse(b);
+      displayStations.sort((ChargingStationInfo a, ChargingStationInfo b) {
+        // Sorting stations by availability and address
+        final int aAvailable = _countAvailableEvse(a);
+        final int bAvailable = _countAvailableEvse(b);
 
         if (aAvailable == 0 && bAvailable > 0) return 1;
         if (aAvailable > 0 && bAvailable == 0) return -1;
@@ -81,7 +115,7 @@ class SearchOverlayState extends State<SearchOverlay> {
         color: const Color(0xFF282828),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+          children: <Widget>[
             _buildSearchContent(displayStations),
             const SizedBox(height: 16.0),
           ],
@@ -90,16 +124,21 @@ class SearchOverlayState extends State<SearchOverlay> {
     );
   }
 
-  /// Gibt die Zahl der insgesamt passenden Ladepunkte zurück (Filter!)
+  /// Counts the number of filtered EVSE (Electric Vehicle Supply Equipment) points
+  /// that match the selected filters for charging speed, plug types, and parking sensor availability.
+  ///
+  /// [station] - The charging station to check.
+  ///
+  /// Returns the count of EVSE that match the filter criteria.
   int _countFilteredEvse(ChargingStationInfo station) {
-    final mappedPlugs =
-        widget.selectedPlugs.map((p) => plugTypeMap[p] ?? p).toSet();
+    final Set<String> mappedPlugs =
+        widget.selectedPlugs.map((String p) => plugTypeMap[p] ?? p).toSet();
 
-    return station.evses.values.where((evse) {
-      final plugMatches =
+    return station.evses.values.where((EvseInfo evse) {
+      final bool plugMatches =
           mappedPlugs.isEmpty || mappedPlugs.contains(evse.chargingPlug);
 
-      final speedMatches = widget.selectedSpeed == 'all' ||
+      final bool speedMatches = widget.selectedSpeed == 'all' ||
           (widget.selectedSpeed == 'upto_50' && evse.maxPower <= 50) ||
           (widget.selectedSpeed == 'from_50' && evse.maxPower >= 50) ||
           (widget.selectedSpeed == 'from_100' && evse.maxPower >= 100) ||
@@ -116,16 +155,21 @@ class SearchOverlayState extends State<SearchOverlay> {
     }).length;
   }
 
-  /// Gibt die Zahl der freien Ladepunkte zurück (mit Filter & verfügbar)
+  /// Counts the number of available EVSE (Electric Vehicle Supply Equipment) points
+  /// that match the selected filters for charging speed, plug types, and parking sensor availability.
+  ///
+  /// [station] - The charging station to check.
+  ///
+  /// Returns the count of available EVSE that match the filter criteria.
   int _countAvailableEvse(ChargingStationInfo station) {
-    final mappedPlugs =
-        widget.selectedPlugs.map((p) => plugTypeMap[p] ?? p).toSet();
+    final Set<String> mappedPlugs =
+        widget.selectedPlugs.map((String p) => plugTypeMap[p] ?? p).toSet();
 
-    return station.evses.values.where((evse) {
-      final plugMatches =
+    return station.evses.values.where((EvseInfo evse) {
+      final bool plugMatches =
           mappedPlugs.isEmpty || mappedPlugs.contains(evse.chargingPlug);
 
-      final speedMatches = widget.selectedSpeed == 'all' ||
+      final bool speedMatches = widget.selectedSpeed == 'all' ||
           (widget.selectedSpeed == 'upto_50' && evse.maxPower <= 50) ||
           (widget.selectedSpeed == 'from_50' && evse.maxPower >= 50) ||
           (widget.selectedSpeed == 'from_100' && evse.maxPower >= 100) ||
@@ -154,14 +198,18 @@ class SearchOverlayState extends State<SearchOverlay> {
     }).length;
   }
 
+  /// Builds the main content of the search overlay, including the search field and the list of charging stations.
+  ///
+  /// [displayStations] - The list of charging stations to display in the overlay.
+  ///
+  /// Returns a widget that displays the search field and a list of filtered charging stations.
   Widget _buildSearchContent(List<ChargingStationInfo> displayStations) {
     return Container(
       height: 700.0,
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Suchfeld mit Filter-Button und Close
+        children: <Widget>[
           Container(
             height: 60.0,
             decoration: BoxDecoration(
@@ -170,8 +218,8 @@ class SearchOverlayState extends State<SearchOverlay> {
               border: Border.all(color: Colors.black, width: 2.0),
             ),
             child: Row(
-              children: [
-                // Filter-Button
+              children: <Widget>[
+                // Filter button
                 Padding(
                   padding: const EdgeInsets.only(left: 4.0, right: 8.0),
                   child: CircleAvatar(
@@ -185,7 +233,7 @@ class SearchOverlayState extends State<SearchOverlay> {
                     ),
                   ),
                 ),
-                // Suchfeld
+                // Search field
                 Expanded(
                   child: TextField(
                     controller: widget.searchController,
@@ -198,12 +246,12 @@ class SearchOverlayState extends State<SearchOverlay> {
                     ),
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 16),
-                    onChanged: (value) {
+                    onChanged: (String value) {
                       setState(() {});
                     },
                   ),
                 ),
-                // Close-Button
+                // Close button
                 IconButton(
                   icon: const Icon(Icons.close),
                   tooltip: 'close'.tr(),
@@ -220,7 +268,7 @@ class SearchOverlayState extends State<SearchOverlay> {
           Expanded(
             child: ListView.builder(
               itemCount: displayStations.length,
-              itemBuilder: (context, index) {
+              itemBuilder: (BuildContext context, int index) {
                 ChargingStationInfo station = displayStations[index];
                 int availableCount = _countAvailableEvse(station);
                 int totalFilteredCount = _countFilteredEvse(station);
@@ -236,7 +284,7 @@ class SearchOverlayState extends State<SearchOverlay> {
                     '$availableCount/$totalFilteredCount ${'available'.tr()}';
 
                 return Column(
-                  children: [
+                  children: <Widget>[
                     ListTile(
                       title: Text(
                         station.address,
