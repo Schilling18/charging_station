@@ -1,9 +1,22 @@
+// Created 14.03.2024 by Christopher Schilling
+//
+// Builds the Favorites Overlay
+//
+// __version__ = "2.0.0"
+//
+// __author__ = "Christopher Schilling"
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:charging_station/models/api.dart';
 import 'package:charging_station/utils/helper.dart';
 import 'package:easy_localization/easy_localization.dart';
 
+/// A widget that builds the Favorites Overlay.
+///
+/// This widget displays a list of the user's favorite charging stations. It includes
+/// the ability to select a station, remove it from favorites, and see the station's
+/// available chargers and distance from the user's current location.
 class FavoritesOverlay extends StatelessWidget {
   final List<ChargingStationInfo> favoriteStations;
   final Function(ChargingStationInfo) onStationSelected;
@@ -12,6 +25,14 @@ class FavoritesOverlay extends StatelessWidget {
   final List<ChargingStationInfo> chargingStations;
   final Function(String) onDeleteFavorite;
 
+  /// Constructor for the [FavoritesOverlay] widget.
+  ///
+  /// [favoriteStations] - The list of favorite charging stations.
+  /// [onStationSelected] - Callback for when a station is selected.
+  /// [onClose] - Callback for when the overlay should be closed.
+  /// [currentPosition] - The current position of the user.
+  /// [chargingStations] - The list of all charging stations.
+  /// [onDeleteFavorite] - Callback for deleting a favorite.
   const FavoritesOverlay({
     super.key,
     required this.favoriteStations,
@@ -29,7 +50,7 @@ class FavoritesOverlay extends StatelessWidget {
         color: const Color(0xFF282828),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+          children: <Widget>[
             _buildHeader(context),
             _buildFavoritesList(context),
           ],
@@ -38,6 +59,11 @@ class FavoritesOverlay extends StatelessWidget {
     );
   }
 
+  /// Builds the header of the overlay with the title and close button.
+  ///
+  /// [context] - The BuildContext used to find localized strings.
+  ///
+  /// Returns a Padding widget that contains the header.
   Widget _buildHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(
@@ -48,12 +74,12 @@ class FavoritesOverlay extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        children: <Widget>[
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+            children: <Widget>[
               Text(
-                "favorites".tr(),
+                'favorites'.tr(),
                 style: const TextStyle(
                   fontSize: 24.0,
                   fontWeight: FontWeight.bold,
@@ -76,22 +102,27 @@ class FavoritesOverlay extends StatelessWidget {
     );
   }
 
+  /// Builds the list of favorite charging stations.
+  ///
+  /// [context] - The BuildContext used to find localized strings.
+  ///
+  /// Returns a list view of the favorite stations or a message if there are no favorites.
   Widget _buildFavoritesList(BuildContext context) {
     return Expanded(
       child: favoriteStations.isEmpty
           ? Center(
               child: Text(
-                "no_favorites".tr(),
+                'no_favorites'.tr(),
                 style: const TextStyle(color: Color(0xFFB2BEB5), fontSize: 18),
               ),
             )
           : ListView.builder(
               itemCount: favoriteStations.length,
-              itemBuilder: (context, index) {
-                final station = favoriteStations[index];
+              itemBuilder: (BuildContext context, int index) {
+                final ChargingStationInfo station = favoriteStations[index];
 
                 int availableCount = station.evses.values
-                    .where((evse) => evse.status == 'AVAILABLE')
+                    .where((EvseInfo evse) => evse.status == 'AVAILABLE')
                     .length;
 
                 String subtitleText = '';
@@ -103,17 +134,18 @@ class FavoritesOverlay extends StatelessWidget {
                   subtitleText = '${formatDistance(distance)} ${"away".tr()}, ';
                 }
 
-                // Zeige Zahl nur für >1 an, sonst Text für genau 1 (bzw. 0)
+                // Show number of available chargers or specific text for exactly 1 or 0 chargers
                 if (availableCount == 1) {
-                  subtitleText += "one_charger_available".tr();
+                  subtitleText += 'one_charger_available'
+                      .tr(); // Localized text for "one charger available"
                 } else {
                   subtitleText +=
                       '$availableCount ${"chargers_available".tr()}';
                 }
 
                 return Column(
-                  children: [
-                    if (index > 0) ...[
+                  children: <Widget>[
+                    if (index > 0) ...<Widget>[
                       const Divider(
                         color: Color(0xFFB2BEB5),
                         thickness: 1.0,
@@ -141,7 +173,7 @@ class FavoritesOverlay extends StatelessWidget {
                             color: Color(0xFFB2BEB5), size: 26),
                         onPressed: () =>
                             onDeleteFavorite(station.id.toString()),
-                        tooltip: "remove_favorite".tr(),
+                        tooltip: 'remove_favorite'.tr(),
                       ),
                       onTap: () {
                         onStationSelected(station);
