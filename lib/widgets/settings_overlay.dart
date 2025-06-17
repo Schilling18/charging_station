@@ -1,25 +1,41 @@
+// Created 14.03.2024 by Christopher Schilling
+//
+// This file creates a settings overlay that allows users to configure language preferences and contact/legal information.
+//
+// __version__ = "2.0.0"
+//
+// __author__ = "Christopher Schilling"
+
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// A StatefulWidget that creates a settings overlay.
+///
+/// This widget allows users to modify settings like language, theme, and access legal/contact information.
+/// It supports language change and displays options for modifying settings.
+///
+/// [onClose] - A callback function that will be triggered when the overlay is closed.
 class SettingsOverlay extends StatefulWidget {
   final VoidCallback onClose;
-  final void Function(String theme)? onThemeChanged;
 
   const SettingsOverlay({
     super.key,
     required this.onClose,
-    this.onThemeChanged,
   });
 
   @override
   SettingsOverlayState createState() => SettingsOverlayState();
 }
 
+/// State for the SettingsOverlay widget.
+///
+/// This class manages the state of the SettingsOverlay widget, including saving the selected locale
+/// and handling UI interactions like changing language and viewing contact/legal information.
 class SettingsOverlayState extends State<SettingsOverlay> {
   late Locale _selectedLocale;
 
-  final Map<String, Locale> languageMap = {
+  final Map<String, Locale> languageMap = <String, Locale>{
     'Deutsch': const Locale('de'),
     'English': const Locale('en'),
     'Français': const Locale('fr'),
@@ -32,15 +48,21 @@ class SettingsOverlayState extends State<SettingsOverlay> {
     _selectedLocale = context.locale;
   }
 
+  /// Saves the selected locale to SharedPreferences for persistent storage.
+  ///
+  /// [locale] - The selected locale that will be saved.
   Future<void> _saveLocale(Locale locale) async {
-    final prefs = await SharedPreferences.getInstance();
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('selectedLocale', locale.languageCode);
   }
 
+  /// Displays a contact dialog with email and phone information.
+  ///
+  /// [context] - The BuildContext used to show the dialog.
   void _showContactDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (ctx) {
+      builder: (BuildContext ctx) {
         return AlertDialog(
           backgroundColor: const Color(0xFF282828),
           title: Text(
@@ -53,7 +75,7 @@ class SettingsOverlayState extends State<SettingsOverlay> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+            children: <Widget>[
               Text(
                 '${'email'.tr()}: TestMail',
                 style: const TextStyle(
@@ -71,7 +93,7 @@ class SettingsOverlayState extends State<SettingsOverlay> {
               ),
             ],
           ),
-          actions: [
+          actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
               child: Text(
@@ -101,13 +123,12 @@ class SettingsOverlayState extends State<SettingsOverlay> {
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Überschrift + Schließen-Button
+              children: <Widget>[
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
+                  children: <Widget>[
                     Text(
-                      "settings".tr(),
+                      'settings'.tr(),
                       style: const TextStyle(
                         fontSize: 24.0,
                         fontWeight: FontWeight.bold,
@@ -125,9 +146,9 @@ class SettingsOverlayState extends State<SettingsOverlay> {
                 const Divider(color: Color(0xFFB2BEB5)),
                 const SizedBox(height: 10),
 
-                // Sprache
+                // Language Settings
                 Text(
-                  "language".tr(),
+                  'language'.tr(),
                   style: const TextStyle(
                     fontSize: 20.0,
                     fontWeight: FontWeight.bold,
@@ -149,7 +170,8 @@ class SettingsOverlayState extends State<SettingsOverlay> {
                       icon: const Icon(Icons.arrow_drop_down,
                           color: Color(0xFF282828)),
                       items: languageMap.entries
-                          .map((entry) => DropdownMenuItem<Locale>(
+                          .map((MapEntry<String, Locale> entry) =>
+                              DropdownMenuItem<Locale>(
                                 value: entry.value,
                                 child: Text(
                                   entry.key,
@@ -179,9 +201,9 @@ class SettingsOverlayState extends State<SettingsOverlay> {
 
                 const SizedBox(height: 20),
 
-                // Kontakt / Rechtliches
+                // Contact / Legal Information
                 Text(
-                  "legal".tr(),
+                  'legal'.tr(),
                   style: const TextStyle(
                     fontSize: 20.0,
                     fontWeight: FontWeight.bold,
@@ -204,7 +226,7 @@ class SettingsOverlayState extends State<SettingsOverlay> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       child: Text(
-                        "Kontakt".tr(),
+                        'Kontakt'.tr(),
                         style: const TextStyle(
                           color: Color(0xFF282828),
                           fontSize: 17,
