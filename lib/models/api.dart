@@ -4,7 +4,7 @@
 // The file converts and filters the information from the API
 // into a usable entity
 //
-// __version__ = "1.0.2"
+// __version__ = "2.0.0"
 // __author__ = "Christopher Schilling"
 
 import 'dart:convert';
@@ -78,19 +78,22 @@ class ChargingStationInfo {
 
   /// Factory constructor to create an instance of ChargingStationInfo from JSON
   factory ChargingStationInfo.fromJson(Map<String, dynamic> json) {
-    Map<String, EvseInfo> evsesMap = {};
-    Set<String> uniqueAvailableEvseNumbers = {};
+    final Map<String, EvseInfo> evsesMap =
+        <String, EvseInfo>{}; // explizit typisiert
+    final Set<String> uniqueAvailableEvseNumbers =
+        <String>{}; // explizit typisiert
 
-    for (var evse in json['evses']) {
-      for (var connector in evse['connectors']) {
+    for (final dynamic evse in json['evses']) {
+      for (final dynamic connector in evse['connectors']) {
         bool illegallyParked = false;
-        String status = evse['status'];
+        final String status = evse['status'];
 
         ParkingSensorStatus? parkingSensorStatus;
         bool hasParkingSensor = false;
 
         if (evse.containsKey('parking_sensor')) {
-          final ps = evse['parking_sensor'];
+          final dynamic ps = evse['parking_sensor'];
+
           if (ps == false) {
             parkingSensorStatus = null;
             hasParkingSensor = false;
@@ -139,19 +142,20 @@ class ApiService {
 
   /// Fetches the list of charging stations from the API.
   Future<List<ChargingStationInfo>> fetchChargingStations() async {
-    final response = await http.get(
+    final http.Response response = await http.get(
       Uri.parse(baseUrl),
-      headers: {'X-Api-Key': apiKey},
+      headers: <String, String>{'X-Api-Key': apiKey},
     );
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = json.decode(response.body);
 
       if (data.containsKey('data')) {
-        final List<dynamic> stations = data['data'];
+        final List<dynamic> stations = data['data'] as List<dynamic>;
 
         return stations
-            .map((station) => ChargingStationInfo.fromJson(station))
+            .map((dynamic station) =>
+                ChargingStationInfo.fromJson(station as Map<String, dynamic>))
             .toList();
       } else {
         throw Exception('No data key found in response');
@@ -163,10 +167,10 @@ class ApiService {
 
   /// Searches for an address using the OpenStreetMap Nominatim API.
   Future<List<dynamic>> searchAddress(String query) async {
-    final response = await http.get(Uri.parse(
+    final http.Response response = await http.get(Uri.parse(
         'https://nominatim.openstreetmap.org/search?q=$query&format=json&addressdetails=1&limit=1&countrycodes=de'));
     if (response.statusCode == 200) {
-      return json.decode(response.body);
+      return json.decode(response.body) as List<dynamic>; // explizit typisiert
     } else {
       throw Exception('Error: ${response.reasonPhrase}, No API connection ');
     }
@@ -176,42 +180,41 @@ class ApiService {
 /// Used for debugging.
 Future<void> main() async {
   await dotenv.load();
-  final apiService = ApiService();
+  final ApiService apiService = ApiService();
   try {
-    final stations = await apiService.fetchChargingStations();
-    for (var station in stations) {
+    final List<ChargingStationInfo> stations =
+        await apiService.fetchChargingStations();
+    for (final dynamic station in stations) {
       if (kDebugMode) {
-        print('ID: ${station.id}');
-        print('Address: ${station.address}');
-        print('City: ${station.city}');
-        print(
+        debugPrint('ID: ${station.id}');
+        debugPrint('Address: ${station.address}');
+        debugPrint('City: ${station.city}');
+        debugPrint(
             'Coordinates: ${station.coordinates.latitude}, ${station.coordinates.longitude}');
-        print('Free Chargers: ${station.freechargers}');
-        print('EVSEs:');
-        for (var evse in station.evses.values) {
-          print('  EVSE Number: ${evse.evseNumber}');
-          print('  Max Power: ${evse.maxPower}');
-          print('  Status: ${evse.status}');
-          print('  Illegally Parked: ${evse.illegallyParked}');
-          print('  Charging Plug: ${evse.chargingPlug}');
-          print('  Has Parking Sensor: ${evse.hasParkingSensor}');
+        debugPrint('Free Chargers: ${station.freechargers}');
+        debugPrint('EVSEs:');
+        for (final dynamic evse in station.evses.values) {
+          debugPrint('  EVSE Number: ${evse.evseNumber}');
+          debugPrint('  Max Power: ${evse.maxPower}');
+          debugPrint('  Status: ${evse.status}');
+          debugPrint('  Illegally Parked: ${evse.illegallyParked}');
+          debugPrint('  Charging Plug: ${evse.chargingPlug}');
+          debugPrint('  Has Parking Sensor: ${evse.hasParkingSensor}');
           if (evse.parkingSensor != null) {
-            print('    - Sensor Status: ${evse.parkingSensor!.status}');
-            print(
+            debugPrint('    - Sensor Status: ${evse.parkingSensor!.status}');
+            debugPrint(
                 '    - Illegally Parked: ${evse.parkingSensor!.illegallyParked}');
-            print('    - Sensor Issue: ${evse.parkingSensor!.sensorIssue}');
-            print(
+            debugPrint(
+                '    - Sensor Issue: ${evse.parkingSensor!.sensorIssue}');
+            debugPrint(
                 '    - Last State Change: ${evse.parkingSensor!.utcLastStateChange}');
           }
         }
       }
-      if (kDebugMode) {
-        print('---');
-      }
     }
   } catch (e) {
     if (kDebugMode) {
-      print('Error: $e');
+      debugPrint('Error: $e');
     }
   }
 }
