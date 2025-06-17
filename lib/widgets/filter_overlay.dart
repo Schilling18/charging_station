@@ -1,7 +1,25 @@
+// Created 14.03.2024 by Christopher Schilling
+//
+// This file builds the FilterOverlay Widget, which allows users to filter charging stations
+// based on charging speed, plug type, and parking sensor availability.
+//
+// __version__ = "2.0.0"
+//
+// __author__ = "Christopher Schilling"
+
 import 'package:flutter/material.dart';
 import 'package:charging_station/utils/helper.dart';
 import 'package:easy_localization/easy_localization.dart';
 
+/// A StatefulWidget that builds an overlay for applying filters to the charging stations.
+///
+/// The widget allows the user to select filters for:
+/// - Charging speed (only one selection allowed).
+/// - Plug type(s) (multiple selections allowed).
+/// - Parking sensor availability (boolean option).
+///
+/// [onClose] - The callback function that is executed when the overlay is closed.
+/// [onApply] - The callback function that is executed when the user applies the selected filters.
 class FilterOverlay extends StatefulWidget {
   final VoidCallback onClose;
   final Function(String selectedSpeed, Set<String> selectedPlugs,
@@ -17,23 +35,26 @@ class FilterOverlay extends StatefulWidget {
   State<FilterOverlay> createState() => _FilterOverlayState();
 }
 
+/// The state of the [FilterOverlay] widget.
+///
+/// It manages the filter selection state, including the selected speed, plugs, and parking sensor.
 class _FilterOverlayState extends State<FilterOverlay> {
-  final List<String> speedOptions = [
+  final List<String> speedOptions = <String>[
     'all',
     'upto_50',
     'from_50',
     'from_100',
     'from_200',
     'from_300'
-  ];
-  String selectedSpeed = 'all';
+  ]; // List of available speed options
+  String selectedSpeed = 'all'; // Default speed selection
 
-  final List<String> plugOptions = [
+  final List<String> plugOptions = <String>[
     'Typ2',
     'CCS',
     'CHAdeMO',
-  ];
-  Set<String> selectedPlugs = {};
+  ]; // List of available plug types
+  Set<String> selectedPlugs = <String>{};
 
   bool hasParkingSensor = false;
 
@@ -43,10 +64,13 @@ class _FilterOverlayState extends State<FilterOverlay> {
     _loadSavedFilters();
   }
 
+  /// Loads the previously saved filters for speed, plug types, and parking sensor.
+  ///
+  /// This function fetches the saved preferences using helper functions and updates the state accordingly.
   Future<void> _loadSavedFilters() async {
-    final speed = await loadSelectedSpeed();
-    final plugs = await loadSelectedPlugs();
-    final sensor = await loadSelectedParkingSensor();
+    final String speed = await loadSelectedSpeed();
+    final Set<String> plugs = await loadSelectedPlugs();
+    final bool sensor = await loadSelectedParkingSensor();
     setState(() {
       selectedSpeed = speed;
       selectedPlugs = plugs;
@@ -63,12 +87,12 @@ class _FilterOverlayState extends State<FilterOverlay> {
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+            children: <Widget>[
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
+                children: <Widget>[
                   Text(
-                    "filter".tr(),
+                    'filter'.tr(),
                     style: const TextStyle(
                       fontSize: 24.0,
                       fontWeight: FontWeight.bold,
@@ -85,14 +109,14 @@ class _FilterOverlayState extends State<FilterOverlay> {
               const SizedBox(height: 10),
               const Divider(color: Color(0xFFB2BEB5)),
               const SizedBox(height: 10),
+
               Expanded(
                 child: Scrollbar(
                   thumbVisibility: true,
                   child: SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Ladegeschwindigkeit (nur eine Auswahl)
+                      children: <Widget>[
                         Text(
                           'speed'.tr(),
                           style: const TextStyle(
@@ -103,7 +127,7 @@ class _FilterOverlayState extends State<FilterOverlay> {
                         ),
                         const SizedBox(height: 8),
                         Column(
-                          children: speedOptions.map((optionKey) {
+                          children: speedOptions.map((String optionKey) {
                             return CheckboxListTile(
                               dense: true,
                               contentPadding: EdgeInsets.zero,
@@ -124,8 +148,6 @@ class _FilterOverlayState extends State<FilterOverlay> {
                           }).toList(),
                         ),
                         const SizedBox(height: 20),
-
-                        // Steckertypen (mehrere möglich)
                         Text(
                           'plug'.tr(),
                           style: const TextStyle(
@@ -136,7 +158,7 @@ class _FilterOverlayState extends State<FilterOverlay> {
                         ),
                         const SizedBox(height: 8),
                         Column(
-                          children: plugOptions.map((plug) {
+                          children: plugOptions.map((String plug) {
                             return CheckboxListTile(
                               dense: true,
                               contentPadding: EdgeInsets.zero,
@@ -193,8 +215,11 @@ class _FilterOverlayState extends State<FilterOverlay> {
                   ),
                 ),
               ),
+
+              // Apply Filter button
               ElevatedButton(
                 onPressed: () async {
+                  // Save the selected filters
                   await saveSelectedSpeed(selectedSpeed);
                   await saveSelectedPlugs(selectedPlugs);
                   await saveSelectedParkingSensor(hasParkingSensor);
