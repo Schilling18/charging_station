@@ -223,7 +223,7 @@ class MapScreenState extends State<MapScreen> {
                   ],
                 ),
                 Positioned(
-                  top: 40,
+                  top: 80,
                   left: 20,
                   right: 20,
                   child: GestureDetector(
