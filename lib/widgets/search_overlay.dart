@@ -86,7 +86,7 @@ class SearchOverlayState extends State<SearchOverlay> {
         .toList();
 
     if (widget.currentPosition != null) {
-      displayStations.sort((a, b) {
+      displayStations.sort((ChargingStationInfo a, ChargingStationInfo b) {
         final int aAvailable = _countAvailableEvse(a);
         final int bAvailable = _countAvailableEvse(b);
 
@@ -100,7 +100,7 @@ class SearchOverlayState extends State<SearchOverlay> {
         return aDist.compareTo(bDist);
       });
     } else {
-      displayStations.sort((a, b) {
+      displayStations.sort((ChargingStationInfo a, ChargingStationInfo b) {
         final int aAvailable = _countAvailableEvse(a);
         final int bAvailable = _countAvailableEvse(b);
 
@@ -128,9 +128,9 @@ class SearchOverlayState extends State<SearchOverlay> {
 
   int _countFilteredEvse(ChargingStationInfo station) {
     final Set<String> mappedPlugs =
-        widget.selectedPlugs.map((p) => plugTypeMap[p] ?? p).toSet();
+        widget.selectedPlugs.map((String p) => plugTypeMap[p] ?? p).toSet();
 
-    return station.evses.values.where((evse) {
+    return station.evses.values.where((EvseInfo evse) {
       final bool plugMatches =
           mappedPlugs.isEmpty || mappedPlugs.contains(evse.chargingPlug);
 
@@ -153,9 +153,9 @@ class SearchOverlayState extends State<SearchOverlay> {
 
   int _countAvailableEvse(ChargingStationInfo station) {
     final Set<String> mappedPlugs =
-        widget.selectedPlugs.map((p) => plugTypeMap[p] ?? p).toSet();
+        widget.selectedPlugs.map((String p) => plugTypeMap[p] ?? p).toSet();
 
-    return station.evses.values.where((evse) {
+    return station.evses.values.where((EvseInfo evse) {
       final bool plugMatches =
           mappedPlugs.isEmpty || mappedPlugs.contains(evse.chargingPlug);
 
@@ -246,14 +246,14 @@ class SearchOverlayState extends State<SearchOverlay> {
           Expanded(
             child: ListView.builder(
               itemCount: displayStations.length,
-              itemBuilder: (context, index) {
-                final station = displayStations[index];
-                final availableCount = _countAvailableEvse(station);
-                final totalFilteredCount = _countFilteredEvse(station);
+              itemBuilder: (BuildContext context, int index) {
+                final ChargingStationInfo station = displayStations[index];
+                final int availableCount = _countAvailableEvse(station);
+                final int totalFilteredCount = _countFilteredEvse(station);
 
                 String subtitleText = '';
                 if (widget.currentPosition != null) {
-                  final distance = calculateDistance(
+                  final double distance = calculateDistance(
                     widget.currentPosition!,
                     station.coordinates,
                   );
