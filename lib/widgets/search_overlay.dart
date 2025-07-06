@@ -36,8 +36,6 @@ class SearchOverlay extends StatefulWidget {
   final VoidCallback onClose;
   final void Function(ChargingStationInfo station) onStationSelected;
   final VoidCallback? onFilterTap;
-
-  // Filter parameters passed to the widget
   final String selectedSpeed;
   final Set<String> selectedPlugs;
   final bool hasParkingSensor;
@@ -56,34 +54,39 @@ class SearchOverlay extends StatefulWidget {
   });
 
   @override
-  SearchOverlayState createState() => SearchOverlayState();
+  State<SearchOverlay> createState() => SearchOverlayState();
 }
 
-/// State for the SearchOverlay widget.
-///
-/// This class manages the state of the SearchOverlay widget, including sorting
-/// and filtering the stations based on the search query and selected filters.
 class SearchOverlayState extends State<SearchOverlay> {
+  late final FocusNode _focusNode;
+
   @override
   void initState() {
     super.initState();
+    _focusNode = FocusNode();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      FocusScope.of(context).requestFocus(FocusNode());
+      if (mounted) {
+        _focusNode.requestFocus();
+      }
     });
   }
 
   @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Filter and sort the stations based on the search input and proximity
-    List<ChargingStationInfo> displayStations = widget.filteredStations
+    final List<ChargingStationInfo> displayStations = widget.filteredStations
         .where((ChargingStationInfo station) => station.address
             .toLowerCase()
             .contains(widget.searchController.text.toLowerCase()))
         .toList();
 
     if (widget.currentPosition != null) {
-      // Sorting stations by distance and availability
-      displayStations.sort((ChargingStationInfo a, ChargingStationInfo b) {
+      displayStations.sort((a, b) {
         final int aAvailable = _countAvailableEvse(a);
         final int bAvailable = _countAvailableEvse(b);
 
@@ -97,8 +100,7 @@ class SearchOverlayState extends State<SearchOverlay> {
         return aDist.compareTo(bDist);
       });
     } else {
-      displayStations.sort((ChargingStationInfo a, ChargingStationInfo b) {
-        // Sorting stations by availability and address
+      displayStations.sort((a, b) {
         final int aAvailable = _countAvailableEvse(a);
         final int bAvailable = _countAvailableEvse(b);
 
@@ -124,17 +126,11 @@ class SearchOverlayState extends State<SearchOverlay> {
     );
   }
 
-  /// Counts the number of filtered EVSE (Electric Vehicle Supply Equipment) points
-  /// that match the selected filters for charging speed, plug types, and parking sensor availability.
-  ///
-  /// [station] - The charging station to check.
-  ///
-  /// Returns the count of EVSE that match the filter criteria.
   int _countFilteredEvse(ChargingStationInfo station) {
     final Set<String> mappedPlugs =
-        widget.selectedPlugs.map((String p) => plugTypeMap[p] ?? p).toSet();
+        widget.selectedPlugs.map((p) => plugTypeMap[p] ?? p).toSet();
 
-    return station.evses.values.where((EvseInfo evse) {
+    return station.evses.values.where((evse) {
       final bool plugMatches =
           mappedPlugs.isEmpty || mappedPlugs.contains(evse.chargingPlug);
 
@@ -155,17 +151,11 @@ class SearchOverlayState extends State<SearchOverlay> {
     }).length;
   }
 
-  /// Counts the number of available EVSE (Electric Vehicle Supply Equipment) points
-  /// that match the selected filters for charging speed, plug types, and parking sensor availability.
-  ///
-  /// [station] - The charging station to check.
-  ///
-  /// Returns the count of available EVSE that match the filter criteria.
   int _countAvailableEvse(ChargingStationInfo station) {
     final Set<String> mappedPlugs =
-        widget.selectedPlugs.map((String p) => plugTypeMap[p] ?? p).toSet();
+        widget.selectedPlugs.map((p) => plugTypeMap[p] ?? p).toSet();
 
-    return station.evses.values.where((EvseInfo evse) {
+    return station.evses.values.where((evse) {
       final bool plugMatches =
           mappedPlugs.isEmpty || mappedPlugs.contains(evse.chargingPlug);
 
@@ -198,11 +188,6 @@ class SearchOverlayState extends State<SearchOverlay> {
     }).length;
   }
 
-  /// Builds the main content of the search overlay, including the search field and the list of charging stations.
-  ///
-  /// [displayStations] - The list of charging stations to display in the overlay.
-  ///
-  /// Returns a widget that displays the search field and a list of filtered charging stations.
   Widget _buildSearchContent(List<ChargingStationInfo> displayStations) {
     return Container(
       height: 700.0,
@@ -219,7 +204,6 @@ class SearchOverlayState extends State<SearchOverlay> {
             ),
             child: Row(
               children: <Widget>[
-                // Filter button
                 Padding(
                   padding: const EdgeInsets.only(left: 4.0, right: 8.0),
                   child: CircleAvatar(
@@ -233,11 +217,10 @@ class SearchOverlayState extends State<SearchOverlay> {
                     ),
                   ),
                 ),
-                // Search field
                 Expanded(
                   child: TextField(
                     controller: widget.searchController,
-                    autofocus: true,
+                    focusNode: _focusNode,
                     decoration: InputDecoration(
                       hintText: 'search'.tr(),
                       contentPadding:
@@ -245,21 +228,16 @@ class SearchOverlayState extends State<SearchOverlay> {
                       border: InputBorder.none,
                     ),
                     style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16),
-                    onChanged: (String value) {
-                      setState(() {});
-                    },
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                    onChanged: (_) => setState(() {}),
                   ),
                 ),
-                // Close button
                 IconButton(
                   icon: const Icon(Icons.close),
                   tooltip: 'close'.tr(),
-                  onPressed: () {
-                    setState(() {
-                      widget.onClose();
-                    });
-                  },
+                  onPressed: widget.onClose,
                 ),
               ],
             ),
@@ -268,15 +246,17 @@ class SearchOverlayState extends State<SearchOverlay> {
           Expanded(
             child: ListView.builder(
               itemCount: displayStations.length,
-              itemBuilder: (BuildContext context, int index) {
-                ChargingStationInfo station = displayStations[index];
-                int availableCount = _countAvailableEvse(station);
-                int totalFilteredCount = _countFilteredEvse(station);
+              itemBuilder: (context, index) {
+                final station = displayStations[index];
+                final availableCount = _countAvailableEvse(station);
+                final totalFilteredCount = _countFilteredEvse(station);
 
                 String subtitleText = '';
                 if (widget.currentPosition != null) {
-                  double distance = calculateDistance(
-                      widget.currentPosition!, station.coordinates);
+                  final distance = calculateDistance(
+                    widget.currentPosition!,
+                    station.coordinates,
+                  );
                   subtitleText = '${formatDistance(distance)} ${'away'.tr()}, ';
                 }
 
@@ -301,10 +281,8 @@ class SearchOverlayState extends State<SearchOverlay> {
                         ),
                       ),
                       onTap: () {
-                        setState(() {
-                          widget.onStationSelected(station);
-                          widget.onClose();
-                        });
+                        widget.onStationSelected(station);
+                        widget.onClose();
                       },
                     ),
                     const SizedBox(height: 16.0),
