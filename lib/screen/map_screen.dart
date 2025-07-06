@@ -3,7 +3,7 @@
 // This file defines the MapScreen widget that displays a map with charging stations,
 // handles search functionality, displays charging station details, and manages overlays.
 //
-// __version__ = "2.0.0"
+// __version__ = "2.0.1"
 //
 // __author__ = "Christopher Schilling"
 
@@ -20,6 +20,7 @@ import 'package:charging_station/widgets/settings_overlay.dart';
 import 'package:charging_station/models/api.dart';
 import 'package:charging_station/utils/helper.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'dart:async';
 
 /// A widget representing the map screen where users can interact with the map,
 /// view charging stations, search for stations, and apply filters.
@@ -30,6 +31,40 @@ class MapScreen extends StatefulWidget {
   MapScreenState createState() => MapScreenState();
 }
 
+/// The state class for the [MapScreen] widget, which manages the map display,
+/// overlays, user interactions, and dynamic data updates.
+///
+/// This class handles user interactions with the map such as selecting stations,
+/// searching, applying filters, and viewing station details. It also fetches
+/// updated data periodically to ensure station information is always current.
+///
+/// Overlay states:
+/// [isOverlayVisible] - Controls visibility of the search overlay.
+/// [showFavoritesOverlay] - Controls visibility of the favorites overlay.
+/// [selectedFromList] - Indicates whether a station was selected from a list (vs map).
+/// [showFilterOverlay] - Controls visibility of the filter overlay.
+/// [showSettingsOverlay] - Controls visibility of the settings overlay.
+/// [filteredHasParkingSensor] - Current filter state for parking sensor availability.
+///
+/// Map and position state:
+/// [currentPosition] - The current geolocation of the user.
+/// [selectedCoordinates] - The coordinates to which the map is currently centered.
+/// [selectedStation] - The currently selected charging station (from map or list).
+///
+/// Data and filter state:
+/// [chargingStations] - The full list of charging stations from the API.
+/// [filteredStations] - A subset of [chargingStations] based on user filters.
+/// [favoriteIds] - A set of station IDs marked as user favorites.
+/// [selectedPlugs] - The currently selected plug types for filtering.
+/// [selectedSpeed] - The selected charging speed filter (e.g., 'from_50').
+/// [_refreshTimer] - Internal timer that triggers data refresh every 60 seconds.
+/// [_markers] - The current list of map markers representing filtered stations.
+///
+/// Controller:
+/// [searchController] - The controller tied to the search text field.
+/// [_mapController] - The controller for the FlutterMap widget to programmatically move or zoom.
+///
+/// [defaultCoordinates] - The fallback/default map center (Potsdam) if user location is not available.
 class MapScreenState extends State<MapScreen> {
   // --- Overlay States ---
   bool isOverlayVisible = false;
@@ -50,7 +85,7 @@ class MapScreenState extends State<MapScreen> {
   Set<String> favoriteIds = <String>{};
   Set<String> selectedPlugs = <String>{};
   String selectedSpeed = 'all';
-
+  Timer? _refreshTimer;
   List<Marker> _markers = <Marker>[];
 
   // --- Controller for Search Field ---
@@ -67,11 +102,15 @@ class MapScreenState extends State<MapScreen> {
     selectedCoordinates = defaultCoordinates;
     _loadCurrentPosition();
     _loadChargingStationsAndFavorites();
-    loadInitialFilterSettings();
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 60),
+      (_) => _refreshChargingStations(),
+    );
   }
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     searchController.dispose();
     super.dispose();
   }
@@ -125,6 +164,28 @@ class MapScreenState extends State<MapScreen> {
         chargingStations = <ChargingStationInfo>[];
         favoriteIds = <String>{};
       });
+    }
+  }
+
+  Future<void> _refreshChargingStations() async {
+    try {
+      final Map<String, dynamic> result = await fetchUpdatedStationData();
+
+      if (!mounted) return;
+
+      setState(() {
+        chargingStations = result['stations'] as List<ChargingStationInfo>;
+        favoriteIds = result['favorites'] as Set<String>;
+        filteredStations =
+            result['filteredStations'] as List<ChargingStationInfo>;
+        selectedSpeed = result['selectedSpeed'] as String;
+        selectedPlugs = result['selectedPlugs'] as Set<String>;
+        filteredHasParkingSensor = result['hasParkingSensor'] as bool;
+      });
+
+      updateMarkersFromFilteredStations();
+    } catch (e) {
+      debugPrint('Error during auto-refresh: $e');
     }
   }
 

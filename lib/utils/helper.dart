@@ -371,3 +371,33 @@ Future<Map<String, dynamic>> loadInitialFilterSettings() async {
     'hasParkingSensor': hasParkingSensor,
   };
 }
+
+/// Fetches fresh charging stations, favorites, and filtered stations based on saved filter settings.
+/// This method is intended to be used for periodic background refreshes.
+///
+/// Returns: A map containing updated stations, favorites, filter values, and filtered results.
+Future<Map<String, dynamic>> fetchUpdatedStationData() async {
+  final List<ChargingStationInfo> newStations =
+      await ApiService().fetchChargingStations();
+
+  final Set<String> newFavorites = await loadFavorites();
+
+  final Map<String, dynamic> newFilterSettings =
+      await loadInitialFilterSettings();
+
+  final List<ChargingStationInfo> newFiltered = filterStations(
+    allStations: newStations,
+    selectedSpeed: newFilterSettings['selectedSpeed'] as String,
+    selectedPlugs: newFilterSettings['selectedPlugs'] as Set<String>,
+    hasParkingSensor: newFilterSettings['hasParkingSensor'] as bool,
+  );
+
+  return <String, dynamic>{
+    'stations': newStations,
+    'favorites': newFavorites,
+    'filteredStations': newFiltered,
+    'selectedSpeed': newFilterSettings['selectedSpeed'],
+    'selectedPlugs': newFilterSettings['selectedPlugs'],
+    'hasParkingSensor': newFilterSettings['hasParkingSensor'],
+  };
+}
